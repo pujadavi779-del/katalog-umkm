@@ -1,13 +1,32 @@
 import { notFound } from "next/navigation";
 import NavAdmin from "@/components/NavAdmin";
 import FormProduk from "@/components/FormProduk";
-import CatatanBelumAktif from "@/components/CatatanBelumAktif";
-import { cariProdukContoh } from "@/lib/data-contoh";
+import { ubahProduk } from "@/app/admin/actions";
+import { createServerClient } from "@/lib/supabase/server";
 
-// US-09 (bonus di jalur offline): ubah produk.
-export default async function HalamanUbahProduk({ params }) {
+export const dynamic = "force-dynamic";
+
+export default async function HalamanUbahProduk({ params, searchParams }) {
   const { id } = await params;
-  const produk = cariProdukContoh(id);
+  const p = await searchParams;
+  const pesanError = p?.error;
+
+  let produk = null;
+
+  try {
+    const supabase = createServerClient();
+    const { data, error } = await supabase
+      .from("produk")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (!error && data) {
+      produk = data;
+    }
+  } catch (err) {
+    // Abaikan error agar produk tetap null
+  }
 
   if (!produk) {
     notFound();
@@ -16,9 +35,18 @@ export default async function HalamanUbahProduk({ params }) {
   return (
     <div className="flex flex-col gap-6 py-8">
       <NavAdmin />
-      <h1 className="text-2xl font-extrabold">Ubah produk</h1>
-      <CatatanBelumAktif>Simpan perubahan belum berfungsi: lihat US-09.</CatatanBelumAktif>
-      <FormProduk produk={produk} labelTombol="Simpan perubahan" />
+      <div>
+        <h1 className="text-2xl font-extrabold">Ubah produk</h1>
+        <p className="mt-1 text-sm text-teks-lembut">Perbarui informasi produk di tokomu.</p>
+      </div>
+
+      {pesanError && (
+        <p className="max-w-xl rounded-lg border border-garis bg-permukaan p-3 text-sm text-bahaya">
+          {pesanError}
+        </p>
+      )}
+
+      <FormProduk produk={produk} labelTombol="Simpan perubahan" action={ubahProduk} />
     </div>
   );
 }
