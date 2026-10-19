@@ -1,52 +1,29 @@
 import { notFound } from "next/navigation";
-import NavAdmin from "@/components/NavAdmin";
-import FormProduk from "@/components/FormProduk";
-import { ubahProduk } from "@/app/admin/actions";
-import { createServerClient } from "@/lib/supabase/server";
+import { supabaseServer } from "@/lib/supabase/server";
+import TombolWhatsApp from "@/components/TombolWhatsApp";
 
 export const dynamic = "force-dynamic";
 
-export default async function HalamanUbahProduk({ params, searchParams }) {
-  const { id } = await params;
-  const p = await searchParams;
-  const pesanError = p?.error;
+export default async function DetailProduk({ params }) {
+  const { id } = await params; // di Next.js 16, params adalah Promise
 
-  let produk = null;
+  const { data, error } = await supabaseServer()
+    .from("produk")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
 
-  try {
-    const supabase = createServerClient();
-    const { data, error } = await supabase
-      .from("produk")
-      .select("*")
-      .eq("id", id)
-      .maybeSingle();
-
-    if (!error && data) {
-      produk = data;
-    }
-  } catch (err) {
-    // Abaikan error agar produk tetap null
-  }
-
-  if (!produk) {
-    notFound();
-  }
+  // 22P02 = format id tidak valid (mis. /produk/abc) -> anggap tidak ditemukan
+  if (error && error.code !== "22P02") throw error;
+  if (!data) notFound();
 
   return (
-    <div className="flex flex-col gap-6 py-8">
-      <NavAdmin />
-      <div>
-        <h1 className="text-2xl font-extrabold">Ubah produk</h1>
-        <p className="mt-1 text-sm text-teks-lembut">Perbarui informasi produk di tokomu.</p>
-      </div>
-
-      {pesanError && (
-        <p className="max-w-xl rounded-lg border border-garis bg-permukaan p-3 text-sm text-bahaya">
-          {pesanError}
-        </p>
-      )}
-
-      <FormProduk produk={produk} labelTombol="Simpan perubahan" action={ubahProduk} />
-    </div>
+    <main>
+      {/* Pertahankan tampilan lama (foto, nama, harga, deskripsi) di sini,
+          cukup ganti sumber datanya menjadi `data`. */}
+      <h1>{data.nama}</h1>
+      <p>{data.deskripsi}</p>
+      <TombolWhatsApp produk={data} />
+    </main>
   );
 }

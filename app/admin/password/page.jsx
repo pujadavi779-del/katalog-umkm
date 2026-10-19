@@ -1,59 +1,20 @@
-import NavAdmin from "@/components/NavAdmin";
-import Input from "@/components/Input";
-import Tombol from "@/components/Tombol";
-import { gantiPassword } from "@/app/admin/actions";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { useActionState } from "react";
+import { gantiPassword } from "../actions";
 
-export default async function HalamanGantiPassword({ searchParams }) {
-  const params = await searchParams;
-  const pesanError = params?.error;
-  const pesanSukses = params?.sukses;
+export default function HalamanGantiPassword() {
+  const [state, aksi, sedangProses] = useActionState(gantiPassword, null);
 
   return (
-    <div className="flex flex-col gap-6 py-8">
-      <NavAdmin />
-      <div>
-        <h1 className="text-2xl font-extrabold">Ganti password</h1>
-        <p className="mt-1 text-sm text-teks-lembut">
-          Ganti password bawaan segera setelah pertama kali masuk. Minimal 8 karakter.
-        </p>
-      </div>
-
-      {pesanError ? (
-        <p className="max-w-sm rounded-lg border border-garis bg-permukaan p-3 text-sm text-bahaya">
-          {pesanError}
-        </p>
-      ) : null}
-
-      {pesanSukses ? (
-        <p className="max-w-sm rounded-lg border border-garis bg-permukaan p-3 text-sm font-medium text-utama">
-          {pesanSukses}
-        </p>
-      ) : null}
-
-      <form action={gantiPassword} className="flex max-w-sm flex-col gap-4">
-        <Input
-          label="Password baru"
-          name="password_baru"
-          type="password"
-          autoComplete="new-password"
-          minLength={8}
-          required
-        />
-        <Input
-          label="Ulangi password baru"
-          name="konfirmasi_password"
-          type="password"
-          autoComplete="new-password"
-          minLength={8}
-          required
-        />
-        <Tombol type="submit" className="self-start">
-          Simpan password
-        </Tombol>
+    <main>
+      <form action={aksi}>
+        <input name="password_baru" type="password" placeholder="Password baru" minLength={8} required />
+        <input name="konfirmasi" type="password" placeholder="Ulangi password baru" required />
+        {state?.error && <p role="alert">{state.error}</p>}
+        {state?.sukses && <p role="status">{state.sukses}</p>}
+        <button type="submit" disabled={sedangProses}>Simpan</button>
       </form>
-    </div>
+    </main>
   );
 }
-

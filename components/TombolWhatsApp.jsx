@@ -3,6 +3,17 @@
 import { useState } from "react";
 import { toko } from "@/lib/toko";
 import { formatRupiah } from "@/lib/format";
+import { NOMOR_WA } from "@/lib/toko";
+
+function rupiah(angka) {
+  const nomor = String(NOMOR_WA).replace(/\D/g, "");
+const pesan =
+  `Halo, saya mau pesan ${produk.nama} (${rupiah(produk.harga)})` +
+  (jumlah > 1 ? ` x${jumlah}` : "") +
+  (varian ? `, varian: ${varian}` : "");
+  const href = `https://wa.me/${nomor}?text=${encodeURIComponent(pesan)}`;
+  return "Rp " + new Intl.NumberFormat("id-ID").format(Number(angka) || 0);
+}
 
 export default function TombolWhatsApp({ produk }) {
   const [jumlah, setJumlah] = useState(1);
@@ -62,14 +73,11 @@ export default function TombolWhatsApp({ produk }) {
       </div>
 
       {/* Tombol Pesan via WhatsApp */}
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex w-full items-center justify-center rounded-lg bg-utama px-5 py-3 font-semibold text-white transition-colors hover:bg-utama-gelap sm:w-auto"
-      >
-        Pesan via WhatsApp
-      </a>
+      <a href={href} target="_blank" rel="noopener noreferrer" className="...class tombol lamamu...">
+  Pesan via WhatsApp
+</a>
     </div>
+
+    
   );
 }

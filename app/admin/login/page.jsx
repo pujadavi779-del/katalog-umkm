@@ -1,44 +1,21 @@
-import Input from "@/components/Input";
-import Tombol from "@/components/Tombol";
-import { login } from "@/app/admin/actions";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { useActionState } from "react";
+import { login } from "../actions";
 
-export default async function HalamanLogin({ searchParams }) {
-  const params = await searchParams;
-  const pesanError = params?.error;
-  const emailDefault = params?.email || "";
+export default function HalamanLogin() {
+  const [state, aksi, sedangProses] = useActionState(login, null);
 
   return (
-    <div className="mx-auto flex max-w-sm flex-col gap-6 py-12">
-      <div>
-        <h1 className="text-2xl font-extrabold">Masuk admin</h1>
-        <p className="mt-1 text-sm text-teks-lembut">Khusus pemilik toko untuk mengelola produk.</p>
-      </div>
-      {pesanError ? (
-        <p className="rounded-lg border border-garis bg-permukaan p-3 text-sm text-bahaya">
-          {pesanError}
-        </p>
-      ) : null}
-      <form action={login} className="flex flex-col gap-4">
-        <Input
-          label="Email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          defaultValue={emailDefault}
-          required
-        />
-        <Input
-          label="Password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-        />
-        <Tombol type="submit">Masuk</Tombol>
+    <main>
+      <form action={aksi}>
+        <input name="email" type="email" placeholder="Email" required />
+        <input name="password" type="password" placeholder="Password" required />
+        {state?.error && <p role="alert">{state.error}</p>}
+        <button type="submit" disabled={sedangProses}>
+          {sedangProses ? "Memproses..." : "Masuk"}
+        </button>
       </form>
-    </div>
+    </main>
   );
 }
-

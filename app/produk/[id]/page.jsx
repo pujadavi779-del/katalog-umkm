@@ -1,54 +1,27 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { supabaseServer } from "@/lib/supabase/server";
 import TombolWhatsApp from "@/components/TombolWhatsApp";
-import { formatRupiah } from "@/lib/format";
-import { createServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export default async function HalamanDetailProduk({ params }) {
+export default async function DetailProduk({ params }) {
   const { id } = await params;
-  let produk = null;
 
-  try {
-    const supabase = createServerClient();
-    const { data, error } = await supabase
-      .from("produk")
-      .select("*")
-      .eq("id", id)
-      .maybeSingle();
+  const { data, error } = await supabaseServer()
+    .from("produk")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
 
-    if (!error && data) {
-      produk = data;
-    }
-  } catch (err) {
-    // Jika gagal terhubung atau terjadi error, produk tetap null
-  }
-
-  if (!produk) {
-    notFound();
-  }
+  if (error && error.code !== "22P02") throw error;
+  if (!data) notFound();
 
   return (
-    <article className="grid gap-8 py-8 md:grid-cols-2 md:py-12">
-      <img
-        src={produk.foto_url}
-        alt={produk.nama}
-        className="aspect-square w-full rounded-2xl border border-garis bg-permukaan object-cover"
-      />
-      <div className="flex flex-col gap-4">
-        <Link href="/" className="text-sm text-teks-lembut underline underline-offset-4 hover:text-utama">
-          Kembali ke katalog
-        </Link>
-        <p className="text-sm text-teks-lembut">{produk.kategori}</p>
-        <h1 className="text-3xl font-extrabold leading-tight tracking-tight">{produk.nama}</h1>
-        <p className="self-start rounded-md bg-harga-latar px-3 py-1 text-xl font-bold text-harga">
-          {formatRupiah(produk.harga)}
-        </p>
-        <p className="max-w-prose leading-relaxed text-teks-lembut">{produk.deskripsi}</p>
-        <TombolWhatsApp produk={produk} />
-      </div>
-    </article>
+    <main>
+      {/* Tempel tampilan lamamu di sini, pakai data.nama, data.harga, data.deskripsi */}
+      <h1>{data.nama}</h1>
+      <p>{data.deskripsi}</p>
+      <TombolWhatsApp produk={data} />
+    </main>
   );
 }
-

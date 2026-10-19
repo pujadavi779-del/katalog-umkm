@@ -1,56 +1,55 @@
-import NavAdmin from "@/components/NavAdmin";
-import TabelProduk from "@/components/TabelProduk";
-import Tombol from "@/components/Tombol";
-import { createServerClient } from "@/lib/supabase/server";
+import Link from "next/link";
+import { supabaseServer } from "@/lib/supabase/server";
+import { hapusProduk } from "./actions";
+import TombolHapus from "@/components/TombolHapus";
 
 export const dynamic = "force-dynamic";
 
-export default async function HalamanAdmin({ searchParams }) {
-  const params = await searchParams;
-  const pesanSukses = params?.sukses;
-  const pesanError = params?.error;
-
-  let daftarProduk = [];
-  let errorMsg = null;
+export default async function AdminProduk() {
+  let produk = [];
+  let pesanError = null;
 
   try {
-    const supabase = createServerClient();
-    const { data, error } = await supabase
+    const { data, error } = await supabaseServer()
       .from("produk")
       .select("*")
       .order("id", { ascending: true });
-
-    if (error) {
-      errorMsg = error.message;
-    } else {
-      daftarProduk = data || [];
-    }
-  } catch (err) {
-    errorMsg = err.message;
+    if (error) throw error;
+    produk = data ?? [];
+  } catch (e) {
+    pesanError = e?.message || "Terjadi kesalahan yang tidak diketahui.";
   }
 
   return (
-    <div className="flex flex-col gap-6 py-8">
-      <NavAdmin />
-
-      {pesanSukses && (
-        <p className="rounded-lg border border-garis bg-permukaan p-3 text-sm font-medium text-utama">
-          {pesanSukses}
-        </p>
+    <main>
+      <Link href="/admin/produk/baru">Tambah produk</Link>
+      {pesanError ? (
+        <p role="alert">Gagal mengambil data produk: {pesanError}</p>
+      ) : produk.length === 0 ? (
+        <p>Belum ada produk</p>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>Nama</th>
+              <th>Harga</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {produk.map((p) => (
+              <tr key={p.id}>
+                <td>{p.nama}</td>
+                <td>{"Rp " + new Intl.NumberFormat("id-ID").format(p.harga)}</td>
+                <td>
+                  <Link href={`/admin/produk/${p.id}/edit`}>Ubah</Link>
+                  <TombolHapus aksi={hapusProduk.bind(null, p.id)} nama={p.nama} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
-
-      {(pesanError || errorMsg) && (
-        <p className="rounded-lg border border-garis bg-permukaan p-3 text-sm text-bahaya">
-          {pesanError || `Gagal memuat produk: ${errorMsg}`}
-        </p>
-      )}
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-extrabold">Produk</h1>
-        <Tombol href="/admin/produk/baru">Tambah produk</Tombol>
-      </div>
-
-      <TabelProduk daftarProduk={daftarProduk} />
-    </div>
+    </main>
   );
 }
