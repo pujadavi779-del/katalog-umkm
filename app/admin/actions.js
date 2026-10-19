@@ -4,60 +4,59 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { supabaseAuth } from "@/lib/supabase/auth";
 import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseAuth } from "@/lib/supabase/auth";
 
-async function wajibLogin() {
+export async function buatDeskripsiAI(nama, harga) {
   const supabase = await supabaseAuth();
   const { data } = await supabase.auth.getUser();
-  if (!data?.user) redirect("/admin/login");
-}
+  if (!data?.user) return { error: "Kamu harus login dulu." };
 
-function bacaProduk(formData) {
-  const nama = String(formData.get("nama") ?? "").trim();
-  const hargaMentah = String(formData.get("harga") ?? "").trim();
-  const deskripsi = String(formData.get("deskripsi") ?? "").trim();
-  const foto = String(formData.get("foto") ?? "").trim();
-  const nilai = { nama, harga: hargaMentah, deskripsi, foto };
+  const namaBersih = String(nama ?? "").trim().slice(0, 100);
+  if (!namaBersih) return { error: "Isi nama produk dulu." };
 
-  if (!nama) return { error: "Nama produk wajib diisi.", nilai };
-  const harga = Number(hargaMentah);
-  if (hargaMentah === "" || !Number.isFinite(harga) || harga < 0) {
-    return { error: "Harga harus berupa angka 0 atau lebih.", nilai };
+  const angka = Number(harga);
+  const infoHarga = Number.isFinite(angka) && angka > 0
+    ? ` berharga Rp ${new Intl.NumberFormat("id-ID").format(angka)}`
+    : "";
+
+  const kunci = process.env.ANTHROPIC_API_KEY;
+  if (!kunci) return { error: "ANTHROPIC_API_KEY belum diisi di environment variable." };
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": kunci,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-5-5",
+        max_tokens: 300,
+        messages: [
+          {
+            role: "user",
+            content:
+              `Tulis deskripsi singkat (2 sampai 3 kalimat) dalam bahasa Indonesia yang ramah untuk produk UMKM bernama "${namaBersih}"${infoHarga}. ` +
+              `Jangan mengarang bahan, komposisi, atau klaim kesehatan. Jangan pakai emoji. ` +
+              `Keluarkan hanya teks deskripsinya.`,
+          },
+        ],
+      }),
+    });
+
+    const json = await res.json();
+    if (!res.ok) {
+      return { error: "Gagal membuat deskripsi: " + (json?.error?.message ?? res.status) };
+    }
+    const teks = (json.content ?? [])
+      .filter((b) => b.type === "text")
+      .map((b) => b.text)
+      .join("")
+      .trim();
+    if (!teks) return { error: "AI tidak mengembalikan teks." };
+    return { teks };
+  } catch {
+    return { error: "Tidak bisa menghubungi layanan AI." };
   }
-  return { data: { nama, harga, deskripsi, foto } };
-}
-
-export async function tambahProduk(_stateSebelumnya, formData) {
-  await wajibLogin();
-  const hasil = bacaProduk(formData);
-  if (hasil.error) return hasil;
-
-  const { error } = await supabaseServer().from("produk").insert(hasil.data);
-  if (error) return { error: "Gagal menyimpan: " + error.message, nilai: hasil.data };
-
-  revalidatePath("/");
-  revalidatePath("/admin");
-  redirect("/admin");
-}
-
-export async function ubahProduk(id, _stateSebelumnya, formData) {
-  await wajibLogin();
-  const hasil = bacaProduk(formData);
-  if (hasil.error) return hasil;
-
-  const { error } = await supabaseServer().from("produk").update(hasil.data).eq("id", id);
-  if (error) return { error: "Gagal menyimpan: " + error.message, nilai: hasil.data };
-
-  revalidatePath("/");
-  revalidatePath(`/produk/${id}`);
-  revalidatePath("/admin");
-  redirect("/admin");
-}
-
-export async function hapusProduk(id) {
-  await wajibLogin();
-  const { error } = await supabaseServer().from("produk").delete().eq("id", id);
-  if (error) throw new Error("Gagal menghapus: " + error.message);
-
-  revalidatePath("/");
-  revalidatePath("/admin");
 }
